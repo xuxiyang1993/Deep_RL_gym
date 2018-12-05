@@ -111,6 +111,8 @@ class DQNAgent:
                 episode_time += 1
                 self.time_step += 1
 
+                self.env.render()
+
                 action = self.get_action(last_observation)
                 observation, reward, done, info = self.env.step(action)
 
@@ -123,7 +125,9 @@ class DQNAgent:
                 if self.time_step % self.eval_frequency == 0:
                     evaluate_model = True
 
-            print('Episode:', self.episode, ',Cumulative Reward:', episode_reward, ',Episode Time Step:', episode_time)
+            print('Training Episode:', self.episode)
+            print('Cumulative Reward:', episode_reward)
+            print('Episode Time Step:', episode_time)
 
             if evaluate_model:
                 self.evaluate_model()
