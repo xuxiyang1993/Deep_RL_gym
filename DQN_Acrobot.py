@@ -1,5 +1,6 @@
 import gym
 import random
+import time
 import numpy as np
 from keras.models import Sequential
 from keras.layers import Dense
@@ -9,7 +10,7 @@ from collections import deque
 
 class DQNAgent:
     def __init__(self, env):
-        self._env = env
+        self.env = env
         self.state_size = env.observation_space.shape[0]
         self.action_size = env.action.n
         self.discount_factor = 0.99
@@ -25,10 +26,11 @@ class DQNAgent:
         self.time_step = 0
 
         self.train_frequency = 4
+        self.max_step_each_episode = 1000
         self.train_start = 10e3
         self.update_target_frequency = 10000
-        self.eval_frequency = 250e3
-        self.eval_frames = 200e3
+        self.eval_frequency = 50e3
+        self.eval_episodes = 10
 
         self.model = self.build_model()
         self.target_model = self.build_model()
@@ -54,8 +56,8 @@ class DQNAgent:
     def get_epsilon(self):
         return self.epsilon - self.epsilon_decay * self.time_step
 
-    def get_action(self, state):
-        if random.random() < self.get_epsilon():
+    def get_action(self, state, train=True):
+        if random.random() < self.get_epsilon() and train:
             return random.randrange(self.action_size)
         else:
             q_value = self.model.predict(state)
@@ -95,8 +97,75 @@ class DQNAgent:
         self.episode = 0
         self.time_step = 0
 
-        observation = self.env.reset()
+        start_time = time.time()
+
+        while self.time_step < no_frame:
+            self.episode += 1
+            done = False
+            episode_time = 0
+            episode_reward = 0
+            evaluate_model = False
+            last_observation = self.env.reset()
+
+            while not done and episode_time < self.max_step_each_episode:
+                episode_time += 1
+                self.time_step += 1
+
+                action = self.get_action(last_observation)
+                observation, reward, done, info = self.env.step(action)
+
+                episode_reward += reward
+                self.save_experience((last_observation, action, reward, done, observation))
+                self.train()
+
+                last_observation = observation
+
+                if self.time_step % self.eval_frequency == 0:
+                    evaluate_model = True
+
+            print('Episode:', self.episode, 'Cumulative Reward:', episode_reward, 'Episode Time Step:', episode_time)
+
+            if evaluate_model:
+                self.evaluate_model()
+
+    def evaluate_model(self):
+        evaluate_episode = 0
+        evaluate_time_step = []
+        evaluate_reward = []
+
+        while evaluate_episode < self.eval_episodes:
+            evaluate_episode += 1
+            done = False
+            episode_time = 0
+            episode_reward = 0
+            last_observation = self.env.reset()
+
+            while not done and episode_time < self.max_step_each_episode:
+                episode_time += 1
+                self.env.render()
+
+                action = self.get_action(last_observation, train=False)
+                observation, reward, done, info = self.env.step(action)
+
+                episode_reward += reward
+                last_observation = observation
+
+            evaluate_time_step.append(episode_time)
+            evaluate_reward.append(episode_reward)
+
+        avg_time_step = sum(evaluate_time_step) / len(evaluate_time_step)
+        avg_reward = sum(evaluate_reward) / len(evaluate_reward)
+
+        print('Model Evaluation Result: '
+              'Avg Reward 10 Episodes:', avg_reward,
+              'Avg Time Step Each Episode:', avg_time_step)
 
 
-def run_experiment(env, no_frames = 2e6):
-    return
+def main():
+    agent = DQNAgent(env=gym.make('Acrobot-v1'))
+    agent.run_experiment()
+
+
+if __name__ == '__main__':
+    main()
+    
