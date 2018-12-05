@@ -12,7 +12,7 @@ class DQNAgent:
     def __init__(self, env):
         self.env = env
         self.state_size = env.observation_space.shape[0]
-        self.action_size = env.action.n
+        self.action_size = env.action_space.n
         self.discount_factor = 0.99
         self.learning_rate = 0.0025
         self.epsilon = 1.
@@ -46,7 +46,7 @@ class DQNAgent:
         rmsprop = RMSprop(lr=self.learning_rate)
         adam = Adam(lr=self.learning_rate)
         model.compile(loss='mse', optimizer=adam)
-        model.summary()
+        # model.summary()
 
         return model
 
@@ -60,7 +60,7 @@ class DQNAgent:
         if random.random() < self.get_epsilon() and train:
             return random.randrange(self.action_size)
         else:
-            q_value = self.model.predict(state)
+            q_value = self.model.predict(state.reshape(1, self.state_size))
             return np.argmax(q_value[0])
 
     def save_experience(self, exp):
@@ -123,7 +123,7 @@ class DQNAgent:
                 if self.time_step % self.eval_frequency == 0:
                     evaluate_model = True
 
-            print('Episode:', self.episode, 'Cumulative Reward:', episode_reward, 'Episode Time Step:', episode_time)
+            print('Episode:', self.episode, ',Cumulative Reward:', episode_reward, ',Episode Time Step:', episode_time)
 
             if evaluate_model:
                 self.evaluate_model()
@@ -168,4 +168,3 @@ def main():
 
 if __name__ == '__main__':
     main()
-    
