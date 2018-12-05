@@ -1,6 +1,5 @@
 import gym
 import random
-import time
 import numpy as np
 from keras.models import Sequential
 from keras.layers import Dense
@@ -13,7 +12,7 @@ class DQNAgent:
         self.env = env
         self.state_size = env.observation_space.shape[0]
         self.action_size = env.action_space.n
-        self.discount_factor = 0.99
+        self.gamma = 0.99
         self.learning_rate = 0.0025
         self.epsilon = 1.
         self.epsilon_min = 0.05
@@ -43,7 +42,7 @@ class DQNAgent:
         model.add(Dense(64, activation='relu', kernel_initializer='he_normal'))
         model.add(Dense(64, activation='relu', kernel_initializer='he_normal'))
         model.add(Dense(self.action_size, activation='linear', kernel_initializer='he_normal'))
-        rmsprop = RMSprop(lr=self.learning_rate)
+        # rmsprop = RMSprop(lr=self.learning_rate)
         adam = Adam(lr=self.learning_rate)
         model.compile(loss='mse', optimizer=adam)
         # model.summary()
@@ -74,12 +73,21 @@ class DQNAgent:
 
             mini_batch = random.sample(self.memory, self.batch_size)
 
-            update_input = np.zeros([self.batch_size, self.state_size])
-            update_output = np.zeros([self.batch_size, self.action_size])
+            last_observations = np.array([rep[0] for rep in mini_batch])
+            current_observations = np.array([rep[-1] for rep in mini_batch])
 
-            self.model.fit(update_input, update_output, batch_size=self.batch_size, epochs=1, verbose=0)
+            target = self.model.predict(last_observations)
+            next_q_for_action_selection = self.model.predict(current_observations)
+            next_q = self.target_model.predict(current_observations)
 
-            self.episode -= self.epsilon_decay
+            for i in range(self.batch_size):
+                next_action_sel = np.argmax(next_q_for_action_selection[i])
+                current_action = mini_batch[i][1]
+                reward = mini_batch[i][2]
+                done = mini_batch[i][3]
+                target[i][current_action] = reward + (1 - done) * self.gamma * next_q[i][next_action_sel]
+
+            self.model.fit(last_observations, target, batch_size=self.batch_size, epochs=1, verbose=0)
 
             if self.time_step % self.update_target_frequency == 0:
                 self.update_target_model()
@@ -97,8 +105,6 @@ class DQNAgent:
         self.episode = 0
         self.time_step = 0
 
-        start_time = time.time()
-
         while self.time_step < no_frame:
             self.episode += 1
             done = False
@@ -110,8 +116,6 @@ class DQNAgent:
             while not done and episode_time < self.max_step_each_episode:
                 episode_time += 1
                 self.time_step += 1
-
-                self.env.render()
 
                 action = self.get_action(last_observation)
                 observation, reward, done, info = self.env.step(action)
@@ -125,9 +129,9 @@ class DQNAgent:
                 if self.time_step % self.eval_frequency == 0:
                     evaluate_model = True
 
-            print('Training Episode:', self.episode)
-            print('Cumulative Reward:', episode_reward)
-            print('Episode Time Step:', episode_time)
+            # print('Training Episode:', self.episode)
+            # print('Cumulative Reward:', episode_reward)
+            # print('Episode Time Step:', episode_time)
 
             if evaluate_model:
                 self.evaluate_model()
@@ -160,9 +164,13 @@ class DQNAgent:
         avg_time_step = sum(evaluate_time_step) / len(evaluate_time_step)
         avg_reward = sum(evaluate_reward) / len(evaluate_reward)
 
-        print('Model Evaluation Result: '
-              'Avg Reward 10 Episodes:', avg_reward,
-              'Avg Time Step Each Episode:', avg_time_step)
+        print('Model Evaluation Result at %s' % self.time_step)
+        print('Avg Reward in 10 Episodes:', avg_reward)
+        print('Avg Time Step Each Episode:', avg_time_step)
+        print('-------------------------------------------')
+
+        self.save_model('save_model/%s.h5' % str(int(avg_reward)))
+        self.env.close()
 
 
 def main():
