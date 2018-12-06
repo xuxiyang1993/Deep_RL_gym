@@ -2,12 +2,12 @@ import gym
 import random
 import numpy as np
 from keras.models import Sequential
-from keras.layers import Dense
+from keras.layers import Dense, LSTM
 from keras.optimizers import RMSprop, Adam
 from collections import deque
 
 
-class DQNAgent:
+class LSTMAgent:
     def __init__(self, env):
         self.env = env
         self.state_size = env.observation_space.shape[0]
@@ -36,8 +36,7 @@ class DQNAgent:
 
     def build_model(self):
         model = Sequential()
-        model.add(Dense(32, input_dim=self.state_size, activation='relu', kernel_initializer='he_normal'))
-        model.add(Dense(64, activation='relu', kernel_initializer='he_normal'))
+        model.add(LSTM(32, input_shape=(1, self.state_size), activation='relu', kernel_initializer='he_normal'))
         model.add(Dense(64, activation='relu', kernel_initializer='he_normal'))
         model.add(Dense(64, activation='relu', kernel_initializer='he_normal'))
         model.add(Dense(self.action_size, activation='linear', kernel_initializer='he_normal'))
@@ -58,38 +57,30 @@ class DQNAgent:
         if random.random() < self.get_epsilon() and train:
             return random.randrange(self.action_size)
         else:
-            q_value = self.model.predict(state.reshape(1, self.state_size))
+            q_value = self.model.predict(state.reshape(-1, 1, self.state_size))
             return np.argmax(q_value[0])
 
     def save_experience(self, exp):
         self.memory.append(exp)
 
-    def train(self):
-        if len(self.memory) < self.train_start:
-            return
+    def train(self, last_ob, action, reward, done, ob):
 
-        if self.time_step % self.train_frequency == 0:
+        target = self.model.predict(last_ob.reshape([-1, 1, self.state_size]))
+        # next_q_for_action_selection = self.model.predict(current_observations)
+        # next_q = self.target_model.predict(ob.reshape([1, self.state_size]))
+        # next_action = np.argmax(next_q[0])
 
-            mini_batch = random.sample(self.memory, self.batch_size)
+        # next_action_sel = np.argmax(next_q_for_action_selection[i])
+        # current_action = mini_batch[i][1]
+        # reward = mini_batch[i][2]
+        # done = mini_batch[i][3]
+        next_q_max = np.argmax(self.model.predict(ob.reshape([-1, 1, self.state_size]))[0])
+        target[0][action] = reward + (1 - done) * self.gamma * next_q_max
 
-            last_observations = np.array([rep[0] for rep in mini_batch])
-            current_observations = np.array([rep[-1] for rep in mini_batch])
+        self.model.fit(last_ob.reshape([-1, 1, self.state_size]), target, epochs=1, verbose=0)
 
-            target = self.model.predict(last_observations)
-            next_q_for_action_selection = self.model.predict(current_observations)
-            next_q = self.target_model.predict(current_observations)
-
-            for i in range(self.batch_size):
-                next_action_sel = np.argmax(next_q_for_action_selection[i])
-                current_action = mini_batch[i][1]
-                reward = mini_batch[i][2]
-                done = mini_batch[i][3]
-                target[i][current_action] = reward + (1 - done) * self.gamma * next_q[i][next_action_sel]
-
-            self.model.fit(last_observations, target, batch_size=self.batch_size, epochs=1, verbose=0)
-
-            if self.time_step % self.update_target_frequency == 0:
-                self.update_target_model()
+        # if self.time_step % self.update_target_frequency == 0:
+        #     self.update_target_model()
 
         return
 
@@ -120,8 +111,7 @@ class DQNAgent:
                 observation, reward, done, info = self.env.step(action)
 
                 episode_reward += reward
-                self.save_experience((last_observation, action, reward, done, observation))
-                self.train()
+                self.train(last_observation, action, reward, done, observation)
 
                 last_observation = observation
 
@@ -173,7 +163,8 @@ class DQNAgent:
 
 
 def main():
-    agent = DQNAgent(env=gym.make('Acrobot-v1'))
+    env = gym.make('Acrobot-v1')
+    agent = LSTMAgent(env)
     agent.run_experiment()
 
 
