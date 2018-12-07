@@ -36,7 +36,7 @@ class LSTMAgent:
 
     def build_model(self):
         model = Sequential()
-        model.add(LSTM(32, input_shape=(1, self.state_size), activation='relu', kernel_initializer='he_normal'))
+        model.add(LSTM(32, input_shape=(1, self.state_size), activation='tanh', kernel_initializer='he_normal'))
         model.add(Dense(64, activation='relu', kernel_initializer='he_normal'))
         model.add(Dense(64, activation='relu', kernel_initializer='he_normal'))
         model.add(Dense(self.action_size, activation='linear', kernel_initializer='he_normal'))

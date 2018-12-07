@@ -1,5 +1,6 @@
 import gym
 import random
+import time
 import numpy as np
 from keras.models import Sequential
 from keras.layers import Dense
@@ -25,6 +26,7 @@ class DQNAgent:
         self.time_step = 0
 
         self.train_frequency = 4
+        self.max_step_each_episode = 1000
         self.train_start = 10e3
         self.update_target_frequency = 10000
         self.eval_frequency = 50e3
@@ -41,7 +43,7 @@ class DQNAgent:
         model.add(Dense(64, activation='relu', kernel_initializer='he_normal'))
         model.add(Dense(64, activation='relu', kernel_initializer='he_normal'))
         model.add(Dense(self.action_size, activation='linear', kernel_initializer='he_normal'))
-        # rmsprop = RMSprop(lr=self.learning_rate)
+        rmsprop = RMSprop(lr=self.learning_rate)
         adam = Adam(lr=self.learning_rate)
         model.compile(loss='mse', optimizer=adam)
         # model.summary()
@@ -150,6 +152,8 @@ class DQNAgent:
             while not done:
                 episode_time += 1
                 self.env.render()
+
+                # time.sleep(0.1)
 
                 action = self.get_action(last_observation, train=False)
                 observation, reward, done, info = self.env.step(action)
