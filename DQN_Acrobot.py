@@ -167,7 +167,7 @@ class DQNAgent:
                 self.evaluate_model()
 
         # after running the experiment, plot the final result
-        self.plot_result()
+        self.plot_result(rolling_window=15)
 
     def evaluate_model(self):
         # evaluation by setting epsilon to 0
@@ -218,19 +218,18 @@ class DQNAgent:
         print('Epsilon:', self.get_epsilon())
         print('-------------------------------------------')
 
-    def plot_result(self):
+    def plot_result(self, rolling_window):
         # plot the final result: average score at different episodes and the rolling average
         self.x = self.result_to_plot[1:, 0]
         self.y = self.result_to_plot[1:, 1]
 
         # rolling average
-        rolling_window = 51
         self.x_roll = self.result_to_plot[rolling_window-1:, 0]
         self.y_roll = self.moving_average(self.result_to_plot[:, 1], n=rolling_window)
 
         fig = plt.figure()
         plt.plot(self.x, self.y, 'o-', label='raw')
-        plt.plot(self.x_roll, self.y_roll, 'o-', label='rolling average')
+        plt.plot(self.x_roll, self.y_roll, '-', label='rolling average')
         plt.xlabel('Number of Episodes')
         plt.ylabel('Average Episode Return')
         leg = plt.legend(loc='best')
@@ -238,7 +237,7 @@ class DQNAgent:
         fig.tight_layout()
         plt.show()
 
-    def moving_average(self, a, n=51):
+    def moving_average(self, a, n):
         ret = np.cumsum(a, dtype=float)
         ret[n:] = ret[n:] - ret[:-n]
         return ret[n - 1:] / n
