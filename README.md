@@ -1,6 +1,6 @@
-# DQN_gym
+# Deep_RL_gym
 
-DQN implementation in OpenAI gym environment
+Deep RL algorithm implementation in OpenAI gym environment
 
 ## Requirements
 
