@@ -188,9 +188,9 @@ class DQNAgent:
 
             while not done:
                 episode_time += 1
-                # self.env.render()
-                # import time
-                # time.sleep(0.1)
+                self.env.render()
+                import time
+                time.sleep(0.1)
 
                 # get the action by setting epsilon to 0
                 action = self.get_action(last_observation, train=False)
