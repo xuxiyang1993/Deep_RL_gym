@@ -42,7 +42,8 @@ class DQNAgent:
         model = Sequential()
         model.add(Dense(32, input_dim=self.state_size, activation='relu', kernel_initializer='he_normal'))
         model.add(Dense(64, activation='relu', kernel_initializer='he_normal'))
-        model.add(Dense(32, activation='relu', kernel_initializer='he_normal'))
+        model.add(Dense(64, activation='relu', kernel_initializer='he_normal'))
+        model.add(Dense(64, activation='relu', kernel_initializer='he_normal'))
         model.add(Dense(self.action_size, activation='linear', kernel_initializer='he_normal'))
         rmsprop = RMSprop(lr=self.learning_rate)
         adam = Adam(lr=self.learning_rate)
@@ -245,7 +246,9 @@ class DQNAgent:
 
 def main():
     agent = DQNAgent(env=gym.make('Acrobot-v1'))
-    agent.run_experiment()
+    # agent.run_experiment()
+    agent.load_model('save_model/-61.h5')
+    agent.evaluate_model()
 
 
 if __name__ == '__main__':
